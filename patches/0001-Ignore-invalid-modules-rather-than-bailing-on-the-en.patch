@@ -1,0 +1,38 @@
+diff --git a/src/processor/minidump.cc b/src/processor/minidump.cc
+index 83e5a868..a7d564f2 100644
+--- a/src/processor/minidump.cc
++++ b/src/processor/minidump.cc
+@@ -3195,7 +3195,7 @@ bool MinidumpModuleList::Read(uint32_t expected_size) {
+         BPLOG(ERROR) << "MinidumpModuleList could not read required module "
+                         "auxiliary data for module " <<
+                         module_index << "/" << module_count;
+-        return false;
++        continue;
+       }
+ 
+       // It is safe to use module->code_file() after successfully calling
+@@ -3207,7 +3207,14 @@ bool MinidumpModuleList::Read(uint32_t expected_size) {
+         BPLOG(ERROR) << "MinidumpModuleList found bad base address for module "
+                      << module_index << "/" << module_count << ", "
+                      << module.code_file();
+-        return false;
++        continue;
++      }
++
++      if (module_size == static_cast<uint32_t>(-1)) {
++        BPLOG(ERROR) << "MinidumpModuleList found bad size for module "
++                     << module_index << "/" << module_count << ", "
++                     << module.code_file();
++        continue;
+       }
+ 
+       // Some minidumps have additional modules in the list that are duplicates.
+@@ -3234,7 +3241,7 @@ bool MinidumpModuleList::Read(uint32_t expected_size) {
+                        << module_index << "/" << module_count << ", "
+                        << module.code_file() << ", " << HexString(base_address)
+                        << "+" << HexString(module_size);
+-          return false;
++          continue;
+         }
+ 
+         // If failed due to apparent range overlap the cause may be the client
