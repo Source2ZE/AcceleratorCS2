@@ -133,7 +133,8 @@ project "breakpad-client"
 			path.join(breakpadPath, "common", "linux", "guid_creator.cc"),
 			path.join(breakpadPath, "common", "linux", "linux_libc_support.cc"),
 			path.join(breakpadPath, "common", "linux", "memory_mapped_file.cc"),
-			path.join(breakpadPath, "common", "linux", "safe_readlink.cc")
+			path.join(breakpadPath, "common", "linux", "safe_readlink.cc"),
+			path.join(breakpadPath, "common", "linux", "http_upload.cc")
 		}
 
 		includedirs {
@@ -147,12 +148,15 @@ project "breakpad-client"
 			path.join(breakpadPath, "client", "windows", "crash_generation", "crash_generation_server.cc"),
 			path.join(breakpadPath, "client", "windows", "crash_generation", "minidump_generator.cc"),
 			path.join(breakpadPath, "client", "windows", "handler", "exception_handler.cc"),
-			path.join(breakpadPath, "common", "windows", "guid_string.cc")
+			path.join(breakpadPath, "common", "windows", "guid_string.cc"),
+			path.join(breakpadPath, "common", "windows", "http_upload.cc")
 		}
 
 		includedirs {
 			path.join(_MAIN_SCRIPT_DIR, "breakpad-config", "windows")
 		}
+
+		links "wininet"
 
 	filter {}
 

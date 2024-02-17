@@ -4,12 +4,16 @@
 #include "client/linux/handler/exception_handler.h"
 #include "common/linux/linux_libc_support.h"
 #include "third_party/lss/linux_syscall_support.h"
+#include "common/linux/http_upload.h"
 
 #include <dirent.h>
 #include <unistd.h>
 #else
 #include "client/windows/handler/exception_handler.h"
+#include "common/windows/http_upload.h"
 #endif
+
+#include "vendor/nlohmann/json.hpp"
 
 #include <sys/stat.h>
 #include <stdio.h>
@@ -18,6 +22,8 @@
 #include <limits>
 #include <filesystem>
 #include <codecvt>
+#include <thread>
+#include <fstream>
 
 #include "common/path_helper.h"
 #include "common/using_std_string.h"
@@ -42,6 +48,8 @@ char crashMap[256];
 char crashGamePath[512];
 char crashCommandLine[1024];
 char dumpStoragePath[512];
+std::string g_serverId;
+std::string g_UserId;
 
 CGameEntitySystem *GameEntitySystem()
 {
@@ -283,6 +291,137 @@ static bool dumpCallback(const wchar_t* dump_path,
 }
 #endif
 
+#ifdef _LINUX
+void UploadThread()
+{
+	for (const auto& entry : std::filesystem::directory_iterator(dumpStoragePath)) {
+		if (entry.path().extension() == ".dmp") {
+			std::filesystem::path uploadedPath = entry.path();
+
+			// is dump already uploaded
+			if (entry.path().stem().string().find("_uploaded") != std::string::npos) {
+				continue;
+			}
+
+			ConMsg("Uploading minidump %s\n", entry.path().string().c_str());
+
+			std::map<std::string, std::string> params;
+
+			params["UserID"] = g_UserId.c_str();
+			params["GameDirectory"] = "csgo";
+			params["ExtensionVersion"] = std::string(g_AcceleratorCS2.GetVersion()) + " [AcceleratorCS2 Build]";
+			params["ServerID"] = g_serverId.c_str();
+			params["PresubmitToken"] = "";
+
+			std::filesystem::path metadataPath = entry.path();
+			metadataPath.replace_extension(".dmp.txt");
+
+			std::map<std::string, std::string> files;
+			files["upload_file_minidump"] = entry.path().string();
+			files["upload_file_metadata"] = metadataPath.string();
+
+			std::string res;
+			google_breakpad::HTTPUpload::SendRequest("http://crash.limetech.org/submit", params, files, "", "", "", &res, nullptr, nullptr);
+
+			ConMsg("Upload response: %s\n", res.c_str());
+
+			uploadedPath.replace_filename(uploadedPath.stem().string() + "_uploaded" + uploadedPath.extension().string());
+			std::filesystem::rename(entry.path(), uploadedPath);
+		}
+	}
+};
+#else
+void UploadThread()
+{
+	for (const auto& entry : std::filesystem::directory_iterator(dumpStoragePath)) {
+		if (entry.path().extension() == ".dmp") {
+			std::filesystem::path uploadedPath = entry.path();
+
+
+			// is dump already uploaded
+			if (entry.path().stem().string().find("_uploaded") != std::string::npos) {
+				continue;
+			}
+
+			ConMsg("Uploading minidump %s\n", entry.path().string().c_str());
+
+			std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> strconverter;
+			std::map<std::wstring, std::wstring> params;
+
+			params[L"UserID"] = strconverter.from_bytes(g_UserId).c_str();
+			params[L"GameDirectory"] = L"csgo";
+			params[L"ExtensionVersion"] = strconverter.from_bytes(g_AcceleratorCS2.GetVersion()) + L" [AcceleratorCS2 Build]";
+			params[L"ServerID"] = strconverter.from_bytes(g_serverId).c_str();
+			params[L"PresubmitToken"] = L"";
+
+			std::filesystem::path metadataPath = entry.path();
+			metadataPath.replace_extension(".dmp.txt");
+
+			std::map<std::wstring, std::wstring> files;
+			files[L"upload_file_minidump"] = entry.path().wstring();
+			files[L"upload_file_metadata"] = metadataPath.wstring();
+
+			std::wstring res;
+			google_breakpad::HTTPUpload::SendMultipartPostRequest(L"http://crash.limetech.org/submit", params, files, nullptr, &res, nullptr);
+
+			ConMsg("Upload response: %s\n", strconverter.to_bytes(res).c_str());
+
+			uploadedPath.replace_filename(uploadedPath.stem().string() + "_uploaded" + uploadedPath.extension().string());
+			std::filesystem::rename(entry.path(), uploadedPath);
+		}
+	}
+};
+#endif
+
+void LoadServerId()
+{
+	std::string serverIdPath = std::string(crashGamePath) + "/addons/accelerator_local/serverid.txt";
+	std::ifstream serverIdFile(serverIdPath);
+	if (serverIdFile.is_open()) {
+		serverIdFile >> g_serverId;
+		serverIdFile.close();
+	}
+	else {
+		char buffer[64];
+		V_snprintf(buffer, sizeof(buffer), "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+			rand() % 255, rand() % 255, rand() % 255, rand() % 255, rand() % 255, rand() % 255, 0x40 | ((rand() % 255) & 0x0F), rand() % 255,
+			0x80 | ((rand() % 255) & 0x3F), rand() % 255, rand() % 255, rand() % 255, rand() % 255, rand() % 255, rand() % 255, rand() % 255);
+		g_serverId = buffer;
+
+		std::ofstream serverIdFile(serverIdPath);
+		if (serverIdFile.is_open()) {
+			serverIdFile << g_serverId;
+			serverIdFile.close();
+		}
+	}
+};
+
+void LoadConfig()
+{
+	// load json config
+	std::string configPath = std::string(crashGamePath) + "/addons/accelerator_local/config.json";
+	std::ifstream configFile(configPath);
+	if (configFile.is_open()) {
+		nlohmann::json config;
+		configFile >> config;
+		configFile.close();
+
+		if (config.contains("MinidumpAccountSteamId64")) {
+			g_UserId = config["MinidumpAccountSteamId64"];
+		}
+	}
+	else {
+		nlohmann::json config;
+		config["MinidumpAccountSteamId64"] = "";
+
+		std::ofstream configFile(configPath);
+		if (configFile.is_open()) {
+			configFile << config.dump(2);
+			configFile.close();
+		}
+	}
+}
+
 bool AcceleratorCS2::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool late)
 {
 	PLUGIN_SAVEVARS();
@@ -323,6 +462,12 @@ bool AcceleratorCS2::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen
 
 	if (late)
 		StartupServer({}, nullptr, nullptr);
+
+	LoadServerId();
+	LoadConfig();
+
+	ConMsg("Start accelerator uploader thread\n");
+	new std::thread(UploadThread);
 
 	return true;
 }

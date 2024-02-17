@@ -1,5 +1,4 @@
-#ifndef _INCLUDE_METAMOD_SOURCE_STUB_PLUGIN_H_
-#define _INCLUDE_METAMOD_SOURCE_STUB_PLUGIN_H_
+#pragma once
 #include <ISmmPlugin.h>
 #include <igameevents.h>
 #include <sh_vector.h>
@@ -23,4 +22,3 @@ private: // Hooks
 	void GameFrame(bool simulating, bool bFirstTick, bool bLastTick);
 	void StartupServer(const GameSessionConfiguration_t& config, ISource2WorldSession*, const char*);
 };
-#endif //_INCLUDE_METAMOD_SOURCE_STUB_PLUGIN_H_
