@@ -375,7 +375,7 @@ void UploadThread()
 
 void LoadServerId()
 {
-	std::string serverIdPath = std::string(crashGamePath) + "/addons/accelerator_local/serverid.txt";
+	std::string serverIdPath = std::string(crashGamePath) + "/addons/AcceleratorCS2/serverid.txt";
 	std::ifstream serverIdFile(serverIdPath);
 	if (serverIdFile.is_open()) {
 		serverIdFile >> g_serverId;
@@ -399,7 +399,7 @@ void LoadServerId()
 void LoadConfig()
 {
 	// load json config
-	std::string configPath = std::string(crashGamePath) + "/addons/accelerator_local/config.json";
+	std::string configPath = std::string(crashGamePath) + "/addons/AcceleratorCS2/config.json";
 	std::ifstream configFile(configPath);
 	if (configFile.is_open()) {
 		nlohmann::json config;
@@ -430,7 +430,7 @@ bool AcceleratorCS2::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen
 	GET_V_IFACE_CURRENT(GetEngineFactory, g_pNetworkServerService, INetworkServerService, NETWORKSERVERSERVICE_INTERFACE_VERSION);
 
 	strncpy(crashGamePath, ismm->GetBaseDir(), sizeof(crashGamePath) - 1);
-	ismm->Format(dumpStoragePath, sizeof(dumpStoragePath), "%s/addons/accelerator_local/dumps", ismm->GetBaseDir());
+	ismm->Format(dumpStoragePath, sizeof(dumpStoragePath), "%s/addons/AcceleratorCS2/dumps", ismm->GetBaseDir());
 
 	std::filesystem::create_directory(dumpStoragePath);
 
