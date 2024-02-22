@@ -1,4 +1,5 @@
 files {
+	path.join(SDK_PATH, "public", "tier0", "memoverride.cpp"),
 	path.join(SDK_PATH, "tier1", "convar.cpp"),
 	path.join(SDK_PATH, "tier1", "generichash.cpp"),
 	path.join(SDK_PATH, "entity2", "entityidentity.cpp"),
@@ -25,7 +26,6 @@ linkoptions {
 includedirs {
 	_MAIN_SCRIPT_DIR,
 	-- sdk
-	SDK_PATH,
 	path.join(SDK_PATH, "thirdparty", "protobuf-3.21.8", "src"),
 	path.join(SDK_PATH, "common"),
 	path.join(SDK_PATH, "game", "shared"),

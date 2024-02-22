@@ -24,6 +24,7 @@
 #include <codecvt>
 #include <thread>
 #include <fstream>
+#include <sstream>
 
 #include "common/path_helper.h"
 #include "common/using_std_string.h"
@@ -40,6 +41,8 @@
 #if defined WIN32
 #include <corecrt_io.h>
 #endif
+
+#include "presubmit.h"
 
 AcceleratorCS2 g_AcceleratorCS2;
 PLUGIN_EXPOSE(AcceleratorCS2, g_AcceleratorCS2);
@@ -303,15 +306,23 @@ void UploadThread()
 				continue;
 			}
 
+			char tokenBuffer[64];
+			PresubmitCrashDump(entry.path().string().c_str(), tokenBuffer, sizeof(tokenBuffer));
+			return;
+
 			ConMsg("Uploading minidump %s\n", entry.path().string().c_str());
 
 			std::map<std::string, std::string> params;
 
-			params["UserID"] = g_UserId.c_str();
+			params["UserID"] = g_UserId;
 			params["GameDirectory"] = "csgo";
 			params["ExtensionVersion"] = std::string(g_AcceleratorCS2.GetVersion()) + " [AcceleratorCS2 Build]";
-			params["ServerID"] = g_serverId.c_str();
-			params["PresubmitToken"] = "";
+			params["ServerID"] = g_serverId;
+
+			if (tokenBuffer[0] != '\0')
+			{
+				params["PresubmitToken"] = tokenBuffer;
+			}
 
 			std::filesystem::path metadataPath = entry.path();
 			metadataPath.replace_extension(".dmp.txt");
@@ -343,6 +354,9 @@ void UploadThread()
 				continue;
 			}
 
+			char tokenBuffer[64];
+			PresubmitCrashDump(entry.path().string().c_str(), tokenBuffer, sizeof(tokenBuffer));
+
 			ConMsg("Uploading minidump %s\n", entry.path().string().c_str());
 
 			std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> strconverter;
@@ -352,7 +366,11 @@ void UploadThread()
 			params[L"GameDirectory"] = L"csgo";
 			params[L"ExtensionVersion"] = strconverter.from_bytes(g_AcceleratorCS2.GetVersion()) + L" [AcceleratorCS2 Build]";
 			params[L"ServerID"] = strconverter.from_bytes(g_serverId).c_str();
-			params[L"PresubmitToken"] = L"";
+
+			if (tokenBuffer[0] != '\0')
+			{
+				params[L"PresubmitToken"] = strconverter.from_bytes(tokenBuffer).c_str();
+			}
 
 			std::filesystem::path metadataPath = entry.path();
 			metadataPath.replace_extension(".dmp.txt");
@@ -424,6 +442,31 @@ void LoadConfig()
 
 bool AcceleratorCS2::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool late)
 {
+	try {
+		std::stringstream ss;
+		ss.exceptions(std::ios::failbit);
+		ss << "test" << 1 << "fdsfds";
+
+		if (ss.fail())
+		{
+			ConMsg("Failed to write to string stream\n");
+		}
+
+		if (ss.bad())
+		{
+			ConMsg("Bad bit set on string stream\n");
+		}
+
+		if (!ss.good())
+		{
+			ConMsg("Good bit not set on string stream\n");
+		}
+
+		ConMsg("aaa - %s\n", ss.str().c_str());
+	} catch (std::exception& e) {
+		ConMsg("Exception: %s\n", e.what());
+	}
+
 	PLUGIN_SAVEVARS();
 
 	GET_V_IFACE_CURRENT(GetServerFactory, g_pSource2Server, ISource2Server, SOURCE2SERVER_INTERFACE_VERSION);
@@ -548,7 +591,7 @@ const char* AcceleratorCS2::GetLogTag()
 
 const char* AcceleratorCS2::GetAuthor()
 {
-	return "Poggu, Phoenix (˙·٠●Феникс●٠·˙), Asher Baker (asherkin)";
+	return "Poggu, Phoenix (˙·٠●Феникс●٠·˙), asherkin";
 }
 
 const char* AcceleratorCS2::GetDescription()

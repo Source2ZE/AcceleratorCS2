@@ -75,7 +75,11 @@ project "breakpad"
 
 	pic "On"
 
-	defines { "HAVE_CONFIG_H" }
+	defines { "HAVE_CONFIG_H", "_GLIBCXX_USE_CXX11_ABI=0" }
+	linkoptions { '-static-libstdc++', '-static-libgcc' }
+
+	vectorextensions "sse"
+	strictaliasing "Off"
 
 	filter "system:linux"
 		files {
@@ -105,7 +109,11 @@ project "breakpad-client"
 
 	pic "On"
 
-	defines { "HAVE_CONFIG_H" }
+	defines { "HAVE_CONFIG_H", "_GLIBCXX_USE_CXX11_ABI=0" }
+	linkoptions { '-static-libstdc++', '-static-libgcc' }
+
+	vectorextensions "sse"
+	strictaliasing "Off"
 
 	includedirs {
 		breakpadPath
@@ -184,7 +192,11 @@ project "libdisasm"
 
 	pic "On"
 
-	defines { "HAVE_CONFIG_H" }
+	defines { "HAVE_CONFIG_H", "_GLIBCXX_USE_CXX11_ABI=0" }
+	linkoptions { '-static-libstdc++', '-static-libgcc' }
+
+	vectorextensions "sse"
+	strictaliasing "Off"
 
 	includedirs {
 		breakpadPath
