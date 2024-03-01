@@ -8,4 +8,4 @@ The configuration file is located at `AcceleratorCS2/config.json`. It contains a
 
 ## Running Accelerator on Windows with CounterStrikeSharp crashes the server on startup
 
-Run the server with `-DoNotPreloadDLLs` startup parameter. The engine loops over every single loaded dll and tries to an address in every single page of memory. This causes access violations for the .NET binaries that Accelerator catches and handles (dumps and quits).
+Run the server with `-DoNotPreloadDLLs` startup parameter. The engine loops over every single loaded dll and tries to read an address in every single page of memory. This causes access violations for the .NET binaries that Accelerator catches and handles (dumps and quits).
