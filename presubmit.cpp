@@ -261,6 +261,8 @@ PresubmitResponse PresubmitCrashDump(const char* path, char* tokenBuffer, size_t
 			}
 		}
 	}
+
+	return presubmitResponse;
 }
 
 #ifdef _LINUX
