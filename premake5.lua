@@ -27,6 +27,7 @@ project "AcceleratorCS2"
 	targetdir "bin/%{cfg.buildcfg}"
 	location "build/AcceleratorCS2"
 	visibility  "Hidden"
+	targetprefix ""
 
 	files { "*.h", "*.cpp" }
 
