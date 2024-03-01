@@ -84,9 +84,7 @@ project "AcceleratorCS2"
 		"libdisasm"
 	}
 
-	defines { "META_IS_SOURCE2", "HAVE_CONFIG_H", "HAVE_STDINT_H", "GNUC", "_GLIBCXX_USE_CXX11_ABI=0" }
-
-	linkoptions { '-static-libstdc++', '-static-libgcc' }
+	defines { "META_IS_SOURCE2", "HAVE_CONFIG_H", "HAVE_STDINT_H" }
 
 	vectorextensions "sse"
 	strictaliasing "Off"
@@ -96,4 +94,5 @@ project "AcceleratorCS2"
 
 	includedirs {
 		path.join("vendor", "breakpad", "src"),
+		path.join("vendor", "fmt", "include"),
 	}

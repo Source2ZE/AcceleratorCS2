@@ -308,7 +308,6 @@ void UploadThread()
 
 			char tokenBuffer[64];
 			PresubmitCrashDump(entry.path().string().c_str(), tokenBuffer, sizeof(tokenBuffer));
-			return;
 
 			ConMsg("Uploading minidump %s\n", entry.path().string().c_str());
 
@@ -576,7 +575,7 @@ const char* AcceleratorCS2::GetLicense()
 
 const char* AcceleratorCS2::GetVersion()
 {
-	return "1.0.0";
+	return "2.0.0";
 }
 
 const char* AcceleratorCS2::GetDate()

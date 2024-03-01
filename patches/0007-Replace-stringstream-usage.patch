@@ -1,0 +1,268 @@
+diff --git a/src/common/linux/dump_symbols.cc b/src/common/linux/dump_symbols.cc
+index b693fc9..30b3a4d 100644
+--- a/src/common/linux/dump_symbols.cc
++++ b/src/common/linux/dump_symbols.cc
+@@ -1288,7 +1288,7 @@ bool WriteSymbolFile(const string& load_path,
+                      const string& obj_os,
+                      const std::vector<string>& debug_dirs,
+                      const DumpOptions& options,
+-                     std::ostream& sym_stream) {
++                     std::string& sym_stream) {
+   Module* module;
+   if (!ReadSymbolData(load_path, obj_file, obj_os, debug_dirs, options,
+                       &module))
+@@ -1305,7 +1305,7 @@ bool WriteSymbolFile(const string& load_path,
+ bool WriteSymbolFileHeader(const string& load_path,
+                            const string& obj_file,
+                            const string& obj_os,
+-                           std::ostream& sym_stream) {
++                           std::string& sym_stream) {
+   MmapWrapper map_wrapper;
+   void* elf_header = NULL;
+   if (!LoadELF(load_path, &map_wrapper, &elf_header)) {
+diff --git a/src/common/linux/dump_symbols.h b/src/common/linux/dump_symbols.h
+index f1802ec..f22169a 100644
+--- a/src/common/linux/dump_symbols.h
++++ b/src/common/linux/dump_symbols.h
+@@ -69,7 +69,7 @@ bool WriteSymbolFile(const string& load_path,
+                      const string& obj_os,
+                      const std::vector<string>& debug_dirs,
+                      const DumpOptions& options,
+-                     std::ostream& sym_stream);
++                     std::string& sym_stream);
+
+ // Read the selected object file's debugging information, and write out the
+ // header only to |stream|. Return true on success; if an error occurs, report
+@@ -78,7 +78,7 @@ bool WriteSymbolFile(const string& load_path,
+ bool WriteSymbolFileHeader(const string& load_path,
+                            const string& obj_file,
+                            const string& obj_os,
+-                           std::ostream& sym_stream);
++                           std::string& sym_stream);
+
+ // As above, but simply return the debugging information in MODULE
+ // instead of writing it to a stream. The caller owns the resulting
+diff --git a/src/common/module.cc b/src/common/module.cc
+index b6f5da7..7137adc 100644
+--- a/src/common/module.cc
++++ b/src/common/module.cc
+@@ -48,6 +48,9 @@
+ #include <memory>
+ #include <utility>
+
++#define FMT_HEADER_ONLY
++#include <fmt/format.h>
++
+ namespace google_breakpad {
+
+ using std::dec;
+@@ -357,14 +360,15 @@ bool Module::ReportError() {
+   return false;
+ }
+
+-bool Module::WriteRuleMap(const RuleMap& rule_map, std::ostream& stream) {
++bool Module::WriteRuleMap(const RuleMap& rule_map, std::string& stream) {
+   for (RuleMap::const_iterator it = rule_map.begin();
+        it != rule_map.end(); ++it) {
+     if (it != rule_map.begin())
+-      stream << ' ';
+-    stream << it->first << ": " << it->second;
++      stream += ' ';
++    //stream << it->first << ": " << it->second;
++    stream += fmt::format("{}: {}", it->first, it->second);
+   }
+-  return stream.good();
++  return true;
+ }
+
+ bool Module::AddressIsInModule(Address address) const {
+@@ -380,14 +384,15 @@ bool Module::AddressIsInModule(Address address) const {
+   return false;
+ }
+
+-bool Module::Write(std::ostream& stream, SymbolData symbol_data) {
+-  stream << "MODULE " << os_ << " " << architecture_ << " "
+-         << id_ << " " << name_ << "\n";
+-  if (!stream.good())
+-    return ReportError();
++bool Module::Write(std::string& stream, SymbolData symbol_data) {
++  /*stream << "MODULE " << os_ << " " << architecture_ << " "
++         << id_ << " " << name_ << "\n";*/
++
++  stream = fmt::format("MODULE {} {} {} {}\n", os_, architecture_, id_, name_);
+
+   if (!code_id_.empty()) {
+-    stream << "INFO CODE_ID " << code_id_ << "\n";
++    //stream << "INFO CODE_ID " << code_id_ << "\n";
++    stream += fmt::format("INFO CODE_ID {}\n", code_id_);
+   }
+
+   if (symbol_data & SYMBOLS_AND_FILES) {
+@@ -401,16 +406,14 @@ bool Module::Write(std::ostream& stream, SymbolData symbol_data) {
+          file_it != files_.end(); ++file_it) {
+       File* file = file_it->second;
+       if (file->source_id >= 0) {
+-        stream << "FILE " << file->source_id << " " <<  file->name << "\n";
+-        if (!stream.good())
+-          return ReportError();
++        //stream << "FILE " << file->source_id << " " <<  file->name << "\n";
++        stream += fmt::format("FILE {} {}\n", file->source_id, file->name);
+       }
+     }
+     // Write out inline origins.
+     for (InlineOrigin* origin : inline_origins) {
+-      stream << "INLINE_ORIGIN " << origin->id << " " << origin->name << "\n";
+-      if (!stream.good())
+-        return ReportError();
++      //stream << "INLINE_ORIGIN " << origin->id << " " << origin->name << "\n";
++      stream += fmt::format("INLINE_ORIGIN {} {}\n", origin->id, origin->name.str());
+     }
+
+     // Write out functions and their inlines and lines.
+@@ -420,39 +423,54 @@ bool Module::Write(std::ostream& stream, SymbolData symbol_data) {
+       vector<Line>::iterator line_it = func->lines.begin();
+       for (auto range_it = func->ranges.cbegin();
+            range_it != func->ranges.cend(); ++range_it) {
+-        stream << "FUNC " << (func->is_multiple ? "m " : "") << hex
++        /*stream << "FUNC " << (func->is_multiple ? "m " : "") << hex
+                << (range_it->address - load_address_) << " " << range_it->size
+                << " " << func->parameter_size << " " << func->name << dec
+-               << "\n";
++               << "\n";*/
+
+-        if (!stream.good())
+-          return ReportError();
++        stream += fmt::format("FUNC {}{:x} {:x} {:x} {}\n",
++                             (func->is_multiple ? "m " : ""),
++                             (range_it->address - load_address_),
++                             range_it->size,
++                             func->parameter_size,
++                             func->name.str().c_str());
+
+         // Write out inlines.
+         auto write_inline = [&](unique_ptr<Inline>& in) {
+-          stream << "INLINE ";
++          /*stream << "INLINE ";
+           stream << in->inline_nest_level << " " << in->call_site_line << " "
+                  << in->getCallSiteFileID() << " " << in->origin->id << hex;
++                 */
++          stream += fmt::format("INLINE {} {} {} {}",
++                               in->inline_nest_level,
++                               in->call_site_line,
++                               in->getCallSiteFileID(),
++                               in->origin->id);
++
+           for (const Range& r : in->ranges)
+-            stream << " " << (r.address - load_address_) << " " << r.size;
+-          stream << dec << "\n";
++            //stream << " " << (r.address - load_address_) << " " << r.size;
++            stream += fmt::format(" {:x} {:x}", (r.address - load_address_), r.size);
++          //stream << dec << "\n";
++          stream += "\n";
+         };
+         Module::Inline::InlineDFS(func->inlines, write_inline);
+-        if (!stream.good())
+-          return ReportError();
+
+         while ((line_it != func->lines.end()) &&
+                (line_it->address >= range_it->address) &&
+                (line_it->address < (range_it->address + range_it->size))) {
+-          stream << hex
++          /*stream << hex
+                  << (line_it->address - load_address_) << " "
+                  << line_it->size << " "
+                  << dec
+                  << line_it->number << " "
+-                 << line_it->file->source_id << "\n";
++                 << line_it->file->source_id << "\n";*/
++
++          stream += fmt::format("{:x} {:x} {} {}\n",
++                               (line_it->address - load_address_),
++                               line_it->size,
++                               line_it->number,
++                               line_it->file->source_id);
+
+-          if (!stream.good())
+-            return ReportError();
+
+           ++line_it;
+         }
+@@ -463,9 +481,13 @@ bool Module::Write(std::ostream& stream, SymbolData symbol_data) {
+     for (ExternSet::const_iterator extern_it = externs_.begin();
+          extern_it != externs_.end(); ++extern_it) {
+       Extern* ext = extern_it->get();
+-      stream << "PUBLIC " << (ext->is_multiple ? "m " : "") << hex
++      /*stream << "PUBLIC " << (ext->is_multiple ? "m " : "") << hex
+              << (ext->address - load_address_) << " 0 " << ext->name << dec
+-             << "\n";
++             << "\n";*/
++      stream += fmt::format("PUBLIC {}{:x} 0 {}\n",
++                           (ext->is_multiple ? "m " : ""),
++                           (ext->address - load_address_),
++                           ext->name);
+     }
+   }
+
+@@ -474,25 +496,30 @@ bool Module::Write(std::ostream& stream, SymbolData symbol_data) {
+     for (auto frame_it = stack_frame_entries_.begin();
+          frame_it != stack_frame_entries_.end(); ++frame_it) {
+       StackFrameEntry* entry = frame_it->get();
+-      stream << "STACK CFI INIT " << hex
++      /*stream << "STACK CFI INIT " << hex
+              << (entry->address - load_address_) << " "
+-             << entry->size << " " << dec;
+-      if (!stream.good()
+-          || !WriteRuleMap(entry->initial_rules, stream))
++             << entry->size << " " << dec;*/
++      stream += fmt::format("STACK CFI INIT {:x} {:x} ",
++                           (entry->address - load_address_),
++                           entry->size);
++
++      if (!WriteRuleMap(entry->initial_rules, stream))
+         return ReportError();
+
+-      stream << "\n";
++      //stream << "\n";
++      stream += "\n";
+
+       // Write out this entry's delta rules as 'STACK CFI' records.
+       for (RuleChangeMap::const_iterator delta_it = entry->rule_changes.begin();
+            delta_it != entry->rule_changes.end(); ++delta_it) {
+-        stream << "STACK CFI " << hex
+-               << (delta_it->first - load_address_) << " " << dec;
+-        if (!stream.good()
+-            || !WriteRuleMap(delta_it->second, stream))
++        /*stream << "STACK CFI " << hex
++               << (delta_it->first - load_address_) << " " << dec;*/
++
++        stream += fmt::format("STACK CFI {:x} ", (delta_it->first - load_address_));
++        if (!WriteRuleMap(delta_it->second, stream))
+           return ReportError();
+
+-        stream << "\n";
++        stream += "\n";
+       }
+     }
+   }
+diff --git a/src/common/module.h b/src/common/module.h
+index 28e8e9c..ef4f1a4 100644
+--- a/src/common/module.h
++++ b/src/common/module.h
+@@ -422,7 +422,7 @@ class Module {
+   // - all CFI records.
+   // Addresses in the output are all relative to the load address
+   // established by SetLoadAddress.
+-  bool Write(std::ostream& stream, SymbolData symbol_data);
++  bool Write(std::string& stream, SymbolData symbol_data);
+
+   // Place the name in the global set of strings. Return a StringView points to
+   // a string inside the pool.
+@@ -445,7 +445,7 @@ class Module {
+   // Write RULE_MAP to STREAM, in the form appropriate for 'STACK CFI'
+   // records, without a final newline. Return true if all goes well;
+   // if an error occurs, return false, and leave errno set.
+-  static bool WriteRuleMap(const RuleMap& rule_map, std::ostream& stream);
++  static bool WriteRuleMap(const RuleMap& rule_map, std::string& stream);
+
+   // Returns true of the specified address resides with an specified address
+   // range, or if no ranges have been specified.

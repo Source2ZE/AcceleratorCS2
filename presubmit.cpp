@@ -18,6 +18,10 @@
 
 #include <sstream>
 #include <codecvt>
+#include <fstream>
+
+#define FMT_HEADER_ONLY
+#include <fmt/format.h>
 
 #include "common/path_helper.h"
 #include "common/using_std_string.h"
@@ -29,6 +33,7 @@
 #include <google_breakpad/processor/call_stack.h>
 #include <google_breakpad/processor/stack_frame.h>
 #include <processor/pathname_stripper.h>
+
 
 extern std::string g_UserId;
 extern AcceleratorCS2 g_AcceleratorCS2;
@@ -118,8 +123,7 @@ PresubmitResponse PresubmitCrashDump(const char* path, char* tokenBuffer, size_t
 		frameCount = 1024;
 	}
 
-	std::ostringstream summaryStream;
-	summaryStream << "2|" << std::to_string(processState.time_date_stamp()) << "|" << os_short << "|" << cpu_arch << "|" << std::to_string(processState.crashed()) << "|" << processState.crash_reason() << "|" << std::hex << processState.crash_address() << std::dec << "|" << std::to_string(requestingThread);
+	std::string summary = fmt::format("2|{}|{}|{}|{}|{}|{:x}|{}", processState.time_date_stamp(), os_short, cpu_arch, processState.crashed(), processState.crash_reason(), processState.crash_address(), requestingThread);
 
 	std::map<const google_breakpad::CodeModule*, unsigned int> moduleMap;
 
@@ -131,7 +135,7 @@ PresubmitResponse PresubmitCrashDump(const char* path, char* tokenBuffer, size_t
 		auto debugFile = google_breakpad::PathnameStripper::File(module->debug_file());
 		auto debugIdentifier = module->debug_identifier();
 
-		summaryStream << "|M|" << debugFile << "|" << debugIdentifier;
+		summary += fmt::format("|M|{}|{}", debugFile, debugIdentifier);
 	}
 
 	for (int frameIndex = 0; frameIndex < frameCount; ++frameIndex) {
@@ -144,10 +148,9 @@ PresubmitResponse PresubmitCrashDump(const char* path, char* tokenBuffer, size_t
 			moduleOffset -= frame->module->base_address();
 		}
 
-		summaryStream << "|F|" << std::to_string(moduleIndex) << "|" << std::hex << moduleOffset << std::dec;
+		summary += fmt::format("|F|{}|{:x}", moduleIndex, moduleOffset);
 	}
 
-	auto summaryLine = summaryStream.str();
 
 #ifdef WIN32
 	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> strconverter;
@@ -157,7 +160,7 @@ PresubmitResponse PresubmitCrashDump(const char* path, char* tokenBuffer, size_t
 	params[L"UserID"] = strconverter.from_bytes(g_UserId).c_str();
 	params[L"ExtensionVersion"] = strconverter.from_bytes(g_AcceleratorCS2.GetVersion()) + L" [AcceleratorCS2 Build]";
 	params[L"ServerID"] = strconverter.from_bytes(g_serverId).c_str();
-	params[L"CrashSignature"] = strconverter.from_bytes(summaryLine).c_str();
+	params[L"CrashSignature"] = strconverter.from_bytes(summary).c_str();
 
 	std::wstring res;
 	int res_code;
@@ -171,9 +174,9 @@ PresubmitResponse PresubmitCrashDump(const char* path, char* tokenBuffer, size_t
 	params["UserID"] = g_UserId;
 	params["ExtensionVersion"] = std::string(g_AcceleratorCS2.GetVersion()) + " [AcceleratorCS2 Build]";
 	params["ServerID"] = g_serverId;
-	params["CrashSignature"] = summaryLine;
+	params["CrashSignature"] = summary;
 
-	ConMsg("signature %s\n", summaryLine.c_str());
+	printf("signature %s\n", summary.c_str());
 
 	std::string resAscii;
 	long int res_code;
@@ -266,7 +269,10 @@ bool UploadSymbolFile(const google_breakpad::CodeModule* _module, std::string pr
 	auto debugFile = _module->debug_file();
 	std::string vdsoOutputPath = "";
 
-	if (debugFile == "linux-gate.so") {
+	if(debugFile.empty() || (debugFile.find("/game/") == std::string::npos))
+		return false;
+
+	if (false && debugFile == "linux-gate.so") {
 		FILE* auxvFile = fopen("/proc/self/auxv", "rb");
 		if (auxvFile) {
 			char vdsoOutputPathBuffer[512];
@@ -305,7 +311,7 @@ bool UploadSymbolFile(const google_breakpad::CodeModule* _module, std::string pr
 		return false;
 	}
 
-	ConMsg("Uploading symbol file: %s\n", debugFile.c_str());
+	ConMsg("Writing symbol file: %s\n", debugFile.c_str());
 
 	auto debugFileDir = google_breakpad::DirName(debugFile);
 	std::vector<string> debug_dirs{
@@ -314,25 +320,23 @@ bool UploadSymbolFile(const google_breakpad::CodeModule* _module, std::string pr
 		"/usr/lib/debug" + debugFileDir,
 	};
 
-	std::ostringstream outputStream;
+	std::string output;
 	google_breakpad::DumpOptions options(ALL_SYMBOL_DATA, true, true);
 
 	{
 		StderrInhibitor stdrrInhibitor;
 
-		if (!WriteSymbolFile(debugFile, debugFile, "Linux", debug_dirs, options, outputStream)) {
-			outputStream.str("");
-			outputStream.clear();
+		if (!WriteSymbolFile(debugFile, debugFile, "Linux", debug_dirs, options, output)) {
+			output = "";
 
 			// Try again without debug dirs.
-			if (!WriteSymbolFile(debugFile, debugFile, "Linux", {}, options, outputStream)) {
+			if (!WriteSymbolFile(debugFile, debugFile, "Linux", {}, options, output)) {
 				ConMsg("Failed to process symbol file\n");
 				return false;
 			}
 		}
 	}
 
-	auto output = outputStream.str();
 
 	if (debugFile == vdsoOutputPath) {
 		unlink(vdsoOutputPath.c_str());
@@ -348,7 +352,16 @@ bool UploadSymbolFile(const google_breakpad::CodeModule* _module, std::string pr
 	if(!presubmitToken.empty())
 		params["PresubmitToken"] = presubmitToken;
 
-	files["symbol_file"] = output;
+	printf("Uploading symbol file: size - %i\n", output.size());
+
+	/*
+	std::ofstream test("/mnt/g/testt/hi.txt");
+	if (test.is_open()) {
+		test << output;
+		test.close();
+	}*/
+
+	params["symbol_file"] = output;
 
 	std::string resAscii;
 	long int res_code;

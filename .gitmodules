@@ -1,3 +1,6 @@
 [submodule "vendor/breakpad"]
 	path = vendor/breakpad
 	url = https://github.com/google/breakpad
+[submodule "vendor/fmt"]
+	path = vendor/fmt
+	url = https://github.com/fmtlib/fmt

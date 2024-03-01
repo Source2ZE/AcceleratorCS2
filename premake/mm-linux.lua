@@ -49,7 +49,8 @@ defines {
 	"POSIX",
 	"GNUC",
 	"COMPILER_GCC",
-	"PLATFORM_64BITS"
+	"PLATFORM_64BITS",
+	"_GLIBCXX_USE_CXX11_ABI=0"
 }
 
 characterset "MBCS"
