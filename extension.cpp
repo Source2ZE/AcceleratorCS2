@@ -441,31 +441,6 @@ void LoadConfig()
 
 bool AcceleratorCS2::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool late)
 {
-	try {
-		std::stringstream ss;
-		ss.exceptions(std::ios::failbit);
-		ss << "test" << 1 << "fdsfds";
-
-		if (ss.fail())
-		{
-			ConMsg("Failed to write to string stream\n");
-		}
-
-		if (ss.bad())
-		{
-			ConMsg("Bad bit set on string stream\n");
-		}
-
-		if (!ss.good())
-		{
-			ConMsg("Good bit not set on string stream\n");
-		}
-
-		ConMsg("aaa - %s\n", ss.str().c_str());
-	} catch (std::exception& e) {
-		ConMsg("Exception: %s\n", e.what());
-	}
-
 	PLUGIN_SAVEVARS();
 
 	GET_V_IFACE_CURRENT(GetServerFactory, g_pSource2Server, ISource2Server, SOURCE2SERVER_INTERFACE_VERSION);
