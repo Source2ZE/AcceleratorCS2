@@ -1,5 +1,7 @@
 /* src/config.h.in.  Generated from configure.ac by autoheader.  */
 
+#define BPLOG_MINIMUM_SEVERITY SEVERITY_CRITICAL
+
 /* Define to 1 if you have the `arc4random' function. */
 #undef HAVE_ARC4RANDOM
 
