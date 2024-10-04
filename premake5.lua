@@ -52,6 +52,7 @@ project "AcceleratorCS2"
 		cppdialect "c++2a"
 		include("premake/mm-linux.lua")
 		links { "pthread", "z"}
+		linkoptions { '-static-libstdc++', '-static-libgcc' }
 
 		includedirs {
 			path.join(_MAIN_SCRIPT_DIR, "breakpad-config", "linux"),
@@ -85,7 +86,7 @@ project "AcceleratorCS2"
 		"libdisasm"
 	}
 
-	defines { "META_IS_SOURCE2", "HAVE_CONFIG_H", "HAVE_STDINT_H" }
+	defines { "META_IS_SOURCE2", "HAVE_CONFIG_H", "HAVE_STDINT_H", "_ITERATOR_DEBUG_LEVEL=0" }
 
 	vectorextensions "sse"
 	strictaliasing "Off"
