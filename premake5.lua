@@ -53,6 +53,7 @@ project "AcceleratorCS2"
 		include("premake/mm-linux.lua")
 		links { "pthread", "z"}
 		linkoptions { '-static-libstdc++', '-static-libgcc' }
+		disablewarnings { "register" }
 
 		includedirs {
 			path.join(_MAIN_SCRIPT_DIR, "breakpad-config", "linux"),
