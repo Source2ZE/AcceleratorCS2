@@ -54,6 +54,7 @@ project "AcceleratorCS2"
 		links { "pthread", "z"}
 		linkoptions { '-static-libstdc++', '-static-libgcc' }
 		disablewarnings { "register" }
+		defines { "stricmp=strcasecmp", "_stricmp=strcasecmp", "_snprintf=snprintf", "_vsnprintf=vsnprintf" }
 
 		includedirs {
 			path.join(_MAIN_SCRIPT_DIR, "breakpad-config", "linux"),
