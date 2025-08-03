@@ -1,0 +1,15 @@
+diff --git a/src/google_breakpad/common/breakpad_types.h b/src/google_breakpad/common/breakpad_types.h
+index efd94e9..8ec4407 100644
+--- a/src/google_breakpad/common/breakpad_types.h
++++ b/src/google_breakpad/common/breakpad_types.h
+@@ -41,8 +41,8 @@
+ 
+ #if (defined(_INTTYPES_H) || defined(_INTTYPES_H_)) && \
+     !defined(__STDC_FORMAT_MACROS)
+-#error "inttypes.h has already been included before this header file, but "
+-#error "without __STDC_FORMAT_MACROS defined."
++//#error "inttypes.h has already been included before this header file, but "
++//#error "without __STDC_FORMAT_MACROS defined."
+ #endif
+ 
+ #ifndef __STDC_FORMAT_MACROS
