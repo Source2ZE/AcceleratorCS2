@@ -550,7 +550,7 @@ const char* AcceleratorCS2::GetLicense()
 
 const char* AcceleratorCS2::GetVersion()
 {
-	return "2.0.3";
+	return "2.0.4";
 }
 
 const char* AcceleratorCS2::GetDate()
