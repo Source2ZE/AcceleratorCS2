@@ -60,8 +60,8 @@ CGameEntitySystem *GameEntitySystem()
 }
 
 class GameSessionConfiguration_t { };
-SH_DECL_HOOK3_void(IServerGameDLL, GameFrame, SH_NOATTRIB, 0, bool, bool, bool);
-SH_DECL_HOOK3_void(INetworkServerService, StartupServer, SH_NOATTRIB, 0, const GameSessionConfiguration_t&, ISource2WorldSession*, const char*);
+KHook::Virtual gameFrameHook(&IServerGameDLL::GameFrame, &g_AcceleratorCS2, nullptr, &AcceleratorCS2::GameFrame);
+KHook::Virtual startupServerHook(&INetworkServerService::StartupServer, &g_AcceleratorCS2, nullptr, &AcceleratorCS2::StartupServer);
 
 google_breakpad::ExceptionHandler* exceptionHandler = nullptr;
 
@@ -459,7 +459,7 @@ bool AcceleratorCS2::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen
 	sigaction(SIGSEGV, NULL, &oact);
 	SignalHandler = oact.sa_sigaction;
 
-	SH_ADD_HOOK(IServerGameDLL, GameFrame, g_pSource2Server, SH_MEMBER(this, &AcceleratorCS2::GameFrame), true);
+	gameFrameHook.Add(g_pSource2Server);
 #else
 	wchar_t* buf = new wchar_t[sizeof(dumpStoragePath)];
 	size_t num_chars = mbstowcs(buf, dumpStoragePath, sizeof(dumpStoragePath));
@@ -473,12 +473,12 @@ bool AcceleratorCS2::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen
 	delete buf;
 #endif
 
-	SH_ADD_HOOK(INetworkServerService, StartupServer, g_pNetworkServerService, SH_MEMBER(this, &AcceleratorCS2::StartupServer), true);
+	startupServerHook.Add(g_pNetworkServerService);
 
 	strncpy(crashCommandLine, CommandLine()->GetCmdLine(), sizeof(crashCommandLine) - 1);
 
 	if (late)
-		StartupServer({}, nullptr, nullptr);
+		StartupServer(nullptr, {}, nullptr, nullptr);
 
 	LoadServerId();
 	LoadConfig();
@@ -492,9 +492,9 @@ bool AcceleratorCS2::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen
 bool AcceleratorCS2::Unload(char* error, size_t maxlen)
 {
 #if defined _LINUX
-	SH_REMOVE_HOOK(IServerGameDLL, GameFrame, g_pSource2Server, SH_MEMBER(this, &AcceleratorCS2::GameFrame), true);
+	gameFrameHook.Remove(g_pSource2Server);
 #endif
-	SH_REMOVE_HOOK(INetworkServerService, StartupServer, g_pNetworkServerService, SH_MEMBER(this, &AcceleratorCS2::StartupServer), true);
+	startupServerHook.Remove(g_pNetworkServerService);
 
 	delete exceptionHandler;
 
@@ -503,7 +503,7 @@ bool AcceleratorCS2::Unload(char* error, size_t maxlen)
 
 #if defined _LINUX
 
-void AcceleratorCS2::GameFrame(bool simulating, bool bFirstTick, bool bLastTick)
+KHook::Return<void> AcceleratorCS2::GameFrame(IServerGameDLL* pThis, bool simulating, bool bFirstTick, bool bLastTick)
 {
 	bool weHaveBeenFuckedOver = false;
 	struct sigaction oact;
@@ -520,7 +520,7 @@ void AcceleratorCS2::GameFrame(bool simulating, bool bFirstTick, bool bLastTick)
 	}
 
 	if (!weHaveBeenFuckedOver)
-		return;
+		return {KHook::Action::Ignore};
 
 	struct sigaction act;
 	memset(&act, 0, sizeof(act));
@@ -534,13 +534,17 @@ void AcceleratorCS2::GameFrame(bool simulating, bool bFirstTick, bool bLastTick)
 
 	for (int i = 0; i < kNumHandledSignals; ++i)
 		sigaction(kExceptionSignals[i], &act, NULL);
+
+	return {KHook::Action::Ignore};
 }
 
 #endif
 
-void AcceleratorCS2::StartupServer(const GameSessionConfiguration_t& config, ISource2WorldSession*, const char*)
+KHook::Return<void> AcceleratorCS2::StartupServer(INetworkServerService* pThis, const GameSessionConfiguration_t& config, ISource2WorldSession*, const char*)
 {
 	strncpy(crashMap, g_pNetworkServerService->GetIGameServer()->GetMapName(), sizeof(crashMap) - 1);
+
+	return {KHook::Action::Ignore};
 }
 
 const char* AcceleratorCS2::GetLicense()
