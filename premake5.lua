@@ -1,7 +1,7 @@
 include("premake/utils")
 
 SDK_PATH = os.getenv("HL2SDKCS2")
-MM_PATH = os.getenv("MMSOURCE112")
+MM_PATH = os.getenv("MMSOURCE_DEV")
 local breakpadPath = "vendor/breakpad/src"
 
 if(SDK_PATH == nil) then
@@ -12,13 +12,57 @@ if(MM_PATH == nil) then
 	error("INVALID METAMOD PATH")
 end
 
+newaction {
+	trigger = "package",
+	description = "Package AcceleratorCS2",
+	execute = function()
+		local package_path = path.join(_MAIN_SCRIPT_DIR, "build", "package", "AcceleratorCS2")
+		local package_bin_path = path.join(package_path, "addons", "AcceleratorCS2")
+		local package_metamod_path = path.join(package_path, "addons", "metamod")
+		local bin_path = path.join(_MAIN_SCRIPT_DIR, "bin", "Release")
+		local binaries = os.target() == "windows"
+			and { "AcceleratorCS2.dll", "AcceleratorCS2.pdb" }
+			or { "AcceleratorCS2.so" }
+		local function copy_file(source, destination)
+			if not os.isfile(source) then
+				error("MISSING PACKAGE FILE: " .. source)
+			end
+
+			local ok, err = os.copyfile(source, destination)
+			if not ok then
+				error(err)
+			end
+		end
+
+		os.mkdir(package_bin_path)
+		os.mkdir(package_metamod_path)
+
+		for _, binary in ipairs(binaries) do
+			copy_file(path.join(bin_path, binary), path.join(package_bin_path, binary))
+		end
+
+		copy_file(
+			path.join(_MAIN_SCRIPT_DIR, "package", "AcceleratorCS2.vdf"),
+			path.join(package_metamod_path, "AcceleratorCS2.vdf")
+		)
+		copy_file(
+			path.join(_MAIN_SCRIPT_DIR, "package", "config.json"),
+			path.join(package_bin_path, "config.json")
+		)
+	end
+}
+
 workspace "AcceleratorCS2"
 	configurations { "Debug", "Release" }
 	platforms {
-		"win64",
-		"linux64"
+		"x64"
 	}
 	location "build"
+	filter "system:windows"
+		buildoptions { "/utf-8" }
+	filter "system:linux"
+		toolset "clang"
+	filter {}
 	include("premake/breakpad")
 
 project "AcceleratorCS2"
@@ -93,7 +137,7 @@ project "AcceleratorCS2"
 	vectorextensions "sse"
 	strictaliasing "Off"
 
-	flags { "MultiProcessorCompile", "Verbose" }
+	multiprocessorcompile "On"
 	pic "On"
 
 	includedirs {

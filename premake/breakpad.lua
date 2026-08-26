@@ -150,6 +150,8 @@ project "breakpad-client"
 		}
 
 	filter "system:windows"
+		cppdialect "c++20"
+
 		files {
 			path.join(breakpadPath, "client", "windows", "crash_generation", "client_info.cc"),
 			path.join(breakpadPath, "client", "windows", "crash_generation", "crash_generation_client.cc"),
