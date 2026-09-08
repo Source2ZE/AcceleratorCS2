@@ -60,7 +60,9 @@ CGameEntitySystem *GameEntitySystem()
 }
 
 class GameSessionConfiguration_t { };
+#if defined _LINUX
 KHook::Virtual<IServerGameDLL, void, bool, bool, bool> gameFrameHook(&IServerGameDLL::GameFrame, &g_AcceleratorCS2, nullptr, &AcceleratorCS2::GameFrame);
+#endif
 KHook::Virtual<INetworkServerService, void, const GameSessionConfiguration_t&, ISource2WorldSession*, const char*> startupServerHook(&INetworkServerService::StartupServer, &g_AcceleratorCS2, nullptr, &AcceleratorCS2::StartupServer);
 
 google_breakpad::ExceptionHandler* exceptionHandler = nullptr;
