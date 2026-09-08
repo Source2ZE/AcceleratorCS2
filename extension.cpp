@@ -60,8 +60,8 @@ CGameEntitySystem *GameEntitySystem()
 }
 
 class GameSessionConfiguration_t { };
-KHook::Virtual gameFrameHook(&IServerGameDLL::GameFrame, &g_AcceleratorCS2, nullptr, &AcceleratorCS2::GameFrame);
-KHook::Virtual startupServerHook(&INetworkServerService::StartupServer, &g_AcceleratorCS2, nullptr, &AcceleratorCS2::StartupServer);
+KHook::Virtual<IServerGameDLL, void, bool, bool, bool> gameFrameHook(&IServerGameDLL::GameFrame, &g_AcceleratorCS2, nullptr, &AcceleratorCS2::GameFrame);
+KHook::Virtual<INetworkServerService, void, const GameSessionConfiguration_t&, ISource2WorldSession*, const char*> startupServerHook(&INetworkServerService::StartupServer, &g_AcceleratorCS2, nullptr, &AcceleratorCS2::StartupServer);
 
 google_breakpad::ExceptionHandler* exceptionHandler = nullptr;
 
@@ -554,7 +554,7 @@ const char* AcceleratorCS2::GetLicense()
 
 const char* AcceleratorCS2::GetVersion()
 {
-	return "2.0.6";
+	return "3.0";
 }
 
 const char* AcceleratorCS2::GetDate()
