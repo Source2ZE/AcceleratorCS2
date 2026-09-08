@@ -1,0 +1,5 @@
+"Metamod Plugin"
+{
+	"alias"	"AcceleratorCS2"
+	"file"	"addons/AcceleratorCS2/AcceleratorCS2"
+}

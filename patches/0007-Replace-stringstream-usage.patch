@@ -30,7 +30,7 @@ index f1802ec..f22169a 100644
                       const DumpOptions& options,
 -                     std::ostream& sym_stream);
 +                     std::string& sym_stream);
-
+ 
  // Read the selected object file's debugging information, and write out the
  // header only to |stream|. Return true on success; if an error occurs, report
 @@ -78,7 +78,7 @@ bool WriteSymbolFile(const string& load_path,
@@ -39,7 +39,7 @@ index f1802ec..f22169a 100644
                             const string& obj_os,
 -                           std::ostream& sym_stream);
 +                           std::string& sym_stream);
-
+ 
  // As above, but simply return the debugging information in MODULE
  // instead of writing it to a stream. The caller owns the resulting
 diff --git a/src/common/module.cc b/src/common/module.cc
@@ -49,17 +49,17 @@ index b6f5da7..7137adc 100644
 @@ -48,6 +48,9 @@
  #include <memory>
  #include <utility>
-
+ 
 +#define FMT_HEADER_ONLY
 +#include <fmt/format.h>
 +
  namespace google_breakpad {
-
+ 
  using std::dec;
 @@ -357,14 +360,15 @@ bool Module::ReportError() {
    return false;
  }
-
+ 
 -bool Module::WriteRuleMap(const RuleMap& rule_map, std::ostream& stream) {
 +bool Module::WriteRuleMap(const RuleMap& rule_map, std::string& stream) {
    for (RuleMap::const_iterator it = rule_map.begin();
@@ -74,12 +74,12 @@ index b6f5da7..7137adc 100644
 -  return stream.good();
 +  return true;
  }
-
+ 
  bool Module::AddressIsInModule(Address address) const {
 @@ -380,14 +384,15 @@ bool Module::AddressIsInModule(Address address) const {
    return false;
  }
-
+ 
 -bool Module::Write(std::ostream& stream, SymbolData symbol_data) {
 -  stream << "MODULE " << os_ << " " << architecture_ << " "
 -         << id_ << " " << name_ << "\n";
@@ -90,13 +90,13 @@ index b6f5da7..7137adc 100644
 +         << id_ << " " << name_ << "\n";*/
 +
 +  stream = fmt::format("MODULE {} {} {} {}\n", os_, architecture_, id_, name_);
-
+ 
    if (!code_id_.empty()) {
 -    stream << "INFO CODE_ID " << code_id_ << "\n";
 +    //stream << "INFO CODE_ID " << code_id_ << "\n";
 +    stream += fmt::format("INFO CODE_ID {}\n", code_id_);
    }
-
+ 
    if (symbol_data & SYMBOLS_AND_FILES) {
 @@ -401,16 +406,14 @@ bool Module::Write(std::ostream& stream, SymbolData symbol_data) {
           file_it != files_.end(); ++file_it) {
@@ -117,7 +117,7 @@ index b6f5da7..7137adc 100644
 +      //stream << "INLINE_ORIGIN " << origin->id << " " << origin->name << "\n";
 +      stream += fmt::format("INLINE_ORIGIN {} {}\n", origin->id, origin->name.str());
      }
-
+ 
      // Write out functions and their inlines and lines.
 @@ -420,39 +423,54 @@ bool Module::Write(std::ostream& stream, SymbolData symbol_data) {
        vector<Line>::iterator line_it = func->lines.begin();
@@ -129,7 +129,7 @@ index b6f5da7..7137adc 100644
                 << " " << func->parameter_size << " " << func->name << dec
 -               << "\n";
 +               << "\n";*/
-
+ 
 -        if (!stream.good())
 -          return ReportError();
 +        stream += fmt::format("FUNC {}{:x} {:x} {:x} {}\n",
@@ -138,7 +138,7 @@ index b6f5da7..7137adc 100644
 +                             range_it->size,
 +                             func->parameter_size,
 +                             func->name.str().c_str());
-
+ 
          // Write out inlines.
          auto write_inline = [&](unique_ptr<Inline>& in) {
 -          stream << "INLINE ";
@@ -163,7 +163,7 @@ index b6f5da7..7137adc 100644
          Module::Inline::InlineDFS(func->inlines, write_inline);
 -        if (!stream.good())
 -          return ReportError();
-
+ 
          while ((line_it != func->lines.end()) &&
                 (line_it->address >= range_it->address) &&
                 (line_it->address < (range_it->address + range_it->size))) {
@@ -181,10 +181,10 @@ index b6f5da7..7137adc 100644
 +                               line_it->size,
 +                               line_it->number,
 +                               line_it->file->source_id);
-
+ 
 -          if (!stream.good())
 -            return ReportError();
-
+ 
            ++line_it;
          }
 @@ -463,9 +481,13 @@ bool Module::Write(std::ostream& stream, SymbolData symbol_data) {
@@ -202,7 +202,7 @@ index b6f5da7..7137adc 100644
 +                           ext->name);
      }
    }
-
+ 
 @@ -474,25 +496,30 @@ bool Module::Write(std::ostream& stream, SymbolData symbol_data) {
      for (auto frame_it = stack_frame_entries_.begin();
           frame_it != stack_frame_entries_.end(); ++frame_it) {
@@ -220,11 +220,11 @@ index b6f5da7..7137adc 100644
 +
 +      if (!WriteRuleMap(entry->initial_rules, stream))
          return ReportError();
-
+ 
 -      stream << "\n";
 +      //stream << "\n";
 +      stream += "\n";
-
+ 
        // Write out this entry's delta rules as 'STACK CFI' records.
        for (RuleChangeMap::const_iterator delta_it = entry->rule_changes.begin();
             delta_it != entry->rule_changes.end(); ++delta_it) {
@@ -238,7 +238,7 @@ index b6f5da7..7137adc 100644
 +        stream += fmt::format("STACK CFI {:x} ", (delta_it->first - load_address_));
 +        if (!WriteRuleMap(delta_it->second, stream))
            return ReportError();
-
+ 
 -        stream << "\n";
 +        stream += "\n";
        }
@@ -254,7 +254,7 @@ index 28e8e9c..ef4f1a4 100644
    // established by SetLoadAddress.
 -  bool Write(std::ostream& stream, SymbolData symbol_data);
 +  bool Write(std::string& stream, SymbolData symbol_data);
-
+ 
    // Place the name in the global set of strings. Return a StringView points to
    // a string inside the pool.
 @@ -445,7 +445,7 @@ class Module {
@@ -263,6 +263,6 @@ index 28e8e9c..ef4f1a4 100644
    // if an error occurs, return false, and leave errno set.
 -  static bool WriteRuleMap(const RuleMap& rule_map, std::ostream& stream);
 +  static bool WriteRuleMap(const RuleMap& rule_map, std::string& stream);
-
+ 
    // Returns true of the specified address resides with an specified address
    // range, or if no ranges have been specified.
