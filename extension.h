@@ -2,7 +2,9 @@
 #include "khook.hpp"
 #include <ISmmPlugin.h>
 #include <igameevents.h>
-#include <iserver.h>
+#include <engine2/isource2server.h>
+#include <engine2/inetworkserverservice.h>
+#include <engine2/inetworkgameserver.h>
 
 class AcceleratorCS2 : public ISmmPlugin, public IMetamodListener
 {

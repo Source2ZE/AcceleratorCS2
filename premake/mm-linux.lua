@@ -1,8 +1,10 @@
 files {
 	path.join(SDK_PATH, "public", "tier0", "memoverride.cpp"),
-	path.join(SDK_PATH, "tier1", "convar.cpp"),
+	path.join(SDK_PATH, "tier0_perproject", "convar.cpp"),
 	path.join(SDK_PATH, "entity2", "entityidentity.cpp"),
 	path.join(SDK_PATH, "entity2", "entitysystem.cpp"),
+	path.join(SDK_PATH, "entity2", "entitykeyvalues.cpp"),
+	path.join(SDK_PATH, "tier0_perproject", "keyvalues3.cpp"),
 }
 
 libdirs {

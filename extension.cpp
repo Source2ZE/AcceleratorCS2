@@ -54,11 +54,6 @@ char dumpStoragePath[512];
 std::string g_serverId;
 std::string g_UserId;
 
-CGameEntitySystem *GameEntitySystem()
-{
-	return nullptr;
-}
-
 class GameSessionConfiguration_t { };
 #if defined _LINUX
 KHook::Virtual<IServerGameDLL, void, bool, bool, bool> gameFrameHook(&IServerGameDLL::GameFrame, &g_AcceleratorCS2, nullptr, &AcceleratorCS2::GameFrame);
@@ -544,7 +539,8 @@ KHook::Return<void> AcceleratorCS2::GameFrame(IServerGameDLL* pThis, bool simula
 
 KHook::Return<void> AcceleratorCS2::StartupServer(INetworkServerService* pThis, const GameSessionConfiguration_t& config, ISource2WorldSession*, const char*)
 {
-	strncpy(crashMap, g_pNetworkServerService->GetIGameServer()->GetMapName(), sizeof(crashMap) - 1);
+	auto *server = reinterpret_cast<INetworkGameServer *>(g_pNetworkServerService->GetIGameServer());
+	strncpy(crashMap, server->GetMapName(), sizeof(crashMap) - 1);
 
 	return {KHook::Action::Ignore};
 }
