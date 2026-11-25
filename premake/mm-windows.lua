@@ -1,9 +1,5 @@
 files {
 	path.join(SDK_PATH, "tier0_perproject", "convar.cpp"),
-	path.join(SDK_PATH, "entity2", "entityidentity.cpp"),
-	path.join(SDK_PATH, "entity2", "entitysystem.cpp"),
-	path.join(SDK_PATH, "entity2", "entitykeyvalues.cpp"),
-	path.join(SDK_PATH, "tier0_perproject", "keyvalues3.cpp"),
 }
 
 links {
@@ -19,14 +15,10 @@ includedirs {
 	path.join(SDK_PATH, "thirdparty", "protobuf-3.21.8", "src"),
 	path.join(SDK_PATH, "common"),
 	path.join(SDK_PATH, "game", "shared"),
-	path.join(SDK_PATH, "game", "server"),
 	path.join(SDK_PATH, "public"),
-	path.join(SDK_PATH, "public", "engine"),
 	path.join(SDK_PATH, "public", "mathlib"),
 	path.join(SDK_PATH, "public", "tier0"),
-	path.join(SDK_PATH, "public", "tier1"),
 	path.join(SDK_PATH, "public", "entity2"),
-	path.join(SDK_PATH, "public", "public", "entity2"),
 	-- metamod
 	path.join(MM_PATH, "core"),
 	path.join(MM_PATH, "third_party", "khook", "include"),
