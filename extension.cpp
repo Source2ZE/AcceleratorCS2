@@ -37,7 +37,6 @@
 #include <google_breakpad/processor/stack_frame.h>
 #include <processor/pathname_stripper.h>
 
-#include <entity2/entitysystem.h>
 #if defined WIN32
 #include <corecrt_io.h>
 #endif
@@ -53,11 +52,6 @@ char crashCommandLine[1024];
 char dumpStoragePath[512];
 std::string g_serverId;
 std::string g_UserId;
-
-CGameEntitySystem *GameEntitySystem()
-{
-	return nullptr;
-}
 
 class GameSessionConfiguration_t { };
 #if defined _LINUX
@@ -480,7 +474,7 @@ bool AcceleratorCS2::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen
 	strncpy(crashCommandLine, CommandLine()->GetCmdLine(), sizeof(crashCommandLine) - 1);
 
 	if (late)
-		StartupServer(nullptr, {}, nullptr, nullptr);
+		StartupServer(nullptr, {}, nullptr, "");
 
 	LoadServerId();
 	LoadConfig();
@@ -542,9 +536,9 @@ KHook::Return<void> AcceleratorCS2::GameFrame(IServerGameDLL* pThis, bool simula
 
 #endif
 
-KHook::Return<void> AcceleratorCS2::StartupServer(INetworkServerService* pThis, const GameSessionConfiguration_t& config, ISource2WorldSession*, const char*)
+KHook::Return<void> AcceleratorCS2::StartupServer(INetworkServerService* pThis, const GameSessionConfiguration_t& config, ISource2WorldSession*, const char* pszMapName)
 {
-	strncpy(crashMap, g_pNetworkServerService->GetIGameServer()->GetMapName(), sizeof(crashMap) - 1);
+	strncpy(crashMap, pszMapName, sizeof(crashMap) - 1);
 
 	return {KHook::Action::Ignore};
 }

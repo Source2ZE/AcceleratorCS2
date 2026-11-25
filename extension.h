@@ -2,7 +2,8 @@
 #include "khook.hpp"
 #include <ISmmPlugin.h>
 #include <igameevents.h>
-#include <iserver.h>
+#include <engine2/isource2server.h>
+#include <engine2/inetworkserverservice.h>
 
 class AcceleratorCS2 : public ISmmPlugin, public IMetamodListener
 {
@@ -20,5 +21,5 @@ public:
 	const char* GetLogTag();
 public: // Hooks
 	KHook::Return<void> GameFrame(IServerGameDLL* pThis, bool simulating, bool bFirstTick, bool bLastTick);
-	KHook::Return<void> StartupServer(INetworkServerService* pThis, const GameSessionConfiguration_t& config, ISource2WorldSession*, const char*);
+	KHook::Return<void> StartupServer(INetworkServerService* pThis, const GameSessionConfiguration_t& config, ISource2WorldSession*, const char* pszMapName);
 };
